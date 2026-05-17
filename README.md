@@ -1,4 +1,14 @@
 # Vibe Search
+---
+title: Vibe Search
+emoji: 🏠
+colorFrom: red
+colorTo: pink
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
 
 Visual similarity search for Airbnb listings using CLIP embeddings.
 
