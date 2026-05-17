@@ -70,7 +70,7 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
             'name': listing['name'],
             'neighbourhood': listing['neighbourhood_cleansed'],
             'url': listing['listing_url'],
-            'photo_url': f'/photos/{city}/{listing_id}.jpg',
+            'photo_url': f'{os.getenv("PHOTO_BASE_URL", "http://localhost:8000")}/photos/{city}/{listing_id}.jpg',
         })
     
     return results

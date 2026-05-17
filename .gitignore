@@ -30,3 +30,5 @@ build/
 dist/
 # Raw data archives (we use the cleaned CSVs instead)
 data/*/listings.csv.gz
+# Local test images (not needed in deployment)
+images/
