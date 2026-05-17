@@ -7,6 +7,8 @@ const CITIES = [
   { value: 'amsterdam', label: 'Amsterdam' },
 ]
 
+const API_BASE = 'https://saurav1403-vibe-search.hf.space'
+
 function App() {
   const [file, setFile] = useState(null)
   const [city, setCity] = useState('barcelona')
@@ -60,7 +62,7 @@ function App() {
       formData.append('file', file)
 
       const response = await fetch(
-        `http://localhost:8000/search?city=${city}&top_k=10`,
+        `${API_BASE}/search?city=${city}&top_k=10`,
         { method: 'POST', body: formData }
       )
 
@@ -184,7 +186,7 @@ function App() {
                 {loading ? (
                   <>
                     <span className="spinner" aria-hidden="true"></span>
-                    <span>Searching…</span>
+                    <span>Searching...</span>
                   </>
                 ) : (
                   <span>Search {cityLabel}</span>
@@ -195,8 +197,7 @@ function App() {
         </section>
 
         {error && (
-          <div className="error" role="alert"
-          >
+          <div className="error" role="alert">
             <strong>Error:</strong> {error}
           </div>
         )}
