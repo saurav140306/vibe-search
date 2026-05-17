@@ -1,12 +1,18 @@
 import os
 import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer, util
+import torch
+from transformers import CLIPModel, CLIPProcessor
 from PIL import Image
+import torch.nn.functional as F
 
-# === Load CLIP model once (shared across all cities) ===
+# === Load CLIP model directly from transformers ===
 print("Loading CLIP model...")
-_model = SentenceTransformer('clip-ViT-B-32')
+_model_name = "openai/clip-vit-base-patch32"
+_model = CLIPModel.from_pretrained(_model_name)
+_processor = CLIPProcessor.from_pretrained(_model_name)
+_model.eval()
+print("CLIP loaded.")
 
 # === Cache for per-city data ===
 _city_cache = {}
@@ -35,7 +41,7 @@ def _load_city_data(city: str):
     
     _city_cache[city] = {
         'listing_ids': listing_ids,
-        'embeddings': embeddings,
+        'embeddings': torch.tensor(embeddings),  # convert to torch for cos_sim
         'df': df,
     }
     
@@ -45,56 +51,22 @@ def _load_city_data(city: str):
 
 def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list:
     """
-    Given a PIL Image and a city, return top_k most visually similar listings in that city.
+    Given a PIL Image and a city, return top_k most visually similar listings.
     """
     city_data = _load_city_data(city)
     listing_ids = city_data['listing_ids']
     embeddings = city_data['embeddings']
     df = city_data['df']
     
-    # Log what we're actually receiving
-    print(f"[DEBUG] Image type: {type(image)}")
-    print(f"[DEBUG] Image mode: {image.mode if hasattr(image, 'mode') else 'no mode'}")
-    print(f"[DEBUG] Image size: {image.size if hasattr(image, 'size') else 'no size'}")
+    # Make sure image is in RGB mode (CLIP requires it)
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
     
-    try:
-        query_embedding = _model.encode([image])[0]
-        print(f"[DEBUG] Encode succeeded, embedding shape: {query_embedding.shape}")
-    except Exception as e:
-        print(f"[DEBUG] Encode failed: {type(e).__name__}: {e}")
-        raise
+    # Direct CLIP encoding using transformers
+    with torch.no_grad():
+        inputs = _processor(images=image, return_tensors="pt")
+        query_embedding = _model.get_image_features(**inputs)[0]
     
-    scores = util.cos_sim(query_embedding, embeddings)[0]
-    
-    top_indices = scores.argsort(descending=True)[:top_k]
-    
-    results = []
-    for idx in top_indices:
-        listing_id = int(listing_ids[idx])
-        score = scores[idx].item()
-        listing = df[df['id'] == listing_id].iloc[0]
-        
-        results.append({
-            'listing_id': listing_id,
-            'score': round(score, 4),
-            'name': listing['name'],
-            'neighbourhood': listing['neighbourhood_cleansed'],
-            'url': listing['listing_url'],
-            'photo_url': f'{os.getenv("PHOTO_BASE_URL", "http://localhost:8000")}/photos/{city}/{listing_id}.jpg',
-        })
-    
-    return results
-
-
-# Pre-load Barcelona at startup so first request is fast
-_load_city_data('barcelona')
-print("Ready.")
-
-
-# === Allow running this file directly to test ===
-if __name__ == '__main__':
-    print("\n--- Test search ---")
-    test_image = Image.open('images/test.png')
-    results = search(test_image, city='barcelona')
-    for rank, r in enumerate(results, start=1):
-        print(f"{rank:2}. ({r['score']:.4f}) {r['name'][:50]:50}  {r['url']}")
+    # Normalize both query and stored embeddings (cosine similarity)
+    query_norm = F.normalize(query_embedding, dim=0)
+    embedding
