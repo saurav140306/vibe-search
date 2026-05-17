@@ -52,7 +52,8 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
     embeddings = city_data['embeddings']
     df = city_data['df']
     
-    query_embedding = _model.encode(image)
+    # Wrap in list so CLIP knows it's a batch of images (not text)
+    query_embedding = _model.encode([image])[0]
     
     scores = util.cos_sim(query_embedding, embeddings)[0]
     
