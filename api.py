@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from io import BytesIO
 import os
+import traceback
 
 from search import search
 
@@ -36,13 +37,24 @@ async def search_endpoint(file: UploadFile = File(...), city: str = "barcelona",
     """
     Upload an image and get back the top_k most visually similar listings in the chosen city.
     """
+    print(f"[DEBUG] Received file: {file.filename}, content_type: {file.content_type}")
+    
     contents = await file.read()
-    image = Image.open(BytesIO(contents))
+    print(f"[DEBUG] File size: {len(contents)} bytes")
+    
+    try:
+        image = Image.open(BytesIO(contents))
+        print(f"[DEBUG] PIL opened image: format={image.format}, mode={image.mode}, size={image.size}")
+    except Exception as e:
+        print(f"[DEBUG] PIL failed: {type(e).__name__}: {e}")
+        return {"error": f"Could not open image: {e}"}
     
     try:
         results = search(image, city=city, top_k=top_k)
-    except ValueError as e:
-        return {"error": str(e)}
+    except Exception as e:
+        print(f"[DEBUG] Search failed: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        return {"error": str(e), "error_type": type(e).__name__}
     
     return {
         "query_filename": file.filename,

@@ -52,8 +52,17 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
     embeddings = city_data['embeddings']
     df = city_data['df']
     
-    # Wrap in list so CLIP knows it's a batch of images (not text)
-    query_embedding = _model.encode([image])[0]
+    # Log what we're actually receiving
+    print(f"[DEBUG] Image type: {type(image)}")
+    print(f"[DEBUG] Image mode: {image.mode if hasattr(image, 'mode') else 'no mode'}")
+    print(f"[DEBUG] Image size: {image.size if hasattr(image, 'size') else 'no size'}")
+    
+    try:
+        query_embedding = _model.encode([image])[0]
+        print(f"[DEBUG] Encode succeeded, embedding shape: {query_embedding.shape}")
+    except Exception as e:
+        print(f"[DEBUG] Encode failed: {type(e).__name__}: {e}")
+        raise
     
     scores = util.cos_sim(query_embedding, embeddings)[0]
     
