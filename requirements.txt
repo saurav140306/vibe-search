@@ -43,7 +43,7 @@ six==1.17.0
 starlette==1.0.0
 sympy==1.14.0
 threadpoolctl==3.6.0
-tokenizers==0.21.4
+tokenizers==0.19.1
 tqdm==4.67.3
 transformers==4.40.0
 typer==0.25.1
