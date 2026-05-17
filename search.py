@@ -41,7 +41,7 @@ def _load_city_data(city: str):
     
     _city_cache[city] = {
         'listing_ids': listing_ids,
-        'embeddings': torch.tensor(embeddings),  # convert to torch for cos_sim
+        'embeddings': torch.tensor(embeddings, dtype=torch.float32),
         'df': df,
     }
     
@@ -64,9 +64,4 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
     
     # Direct CLIP encoding using transformers
     with torch.no_grad():
-        inputs = _processor(images=image, return_tensors="pt")
-        query_embedding = _model.get_image_features(**inputs)[0]
-    
-    # Normalize both query and stored embeddings (cosine similarity)
-    query_norm = F.normalize(query_embedding, dim=0)
-    embedding
+        # Process image and explici
