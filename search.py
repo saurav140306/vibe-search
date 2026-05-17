@@ -64,4 +64,47 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
     
     # Direct CLIP encoding using transformers
     with torch.no_grad():
-        # Process image and explici
+        # Process image and explicitly set tensor dtype
+        inputs = _processor(images=image, return_tensors="pt")
+        # Convert pixel_values to float32 explicitly
+        pixel_values = inputs['pixel_values'].to(torch.float32)
+        query_embedding = _model.get_image_features(pixel_values=pixel_values)[0]
+    
+    # Normalize both query and stored embeddings (cosine similarity)
+    query_norm = F.normalize(query_embedding, dim=0)
+    embeddings_norm = F.normalize(embeddings, dim=1)
+    
+    scores = (embeddings_norm @ query_norm).numpy()
+    
+    top_indices = np.argsort(scores)[::-1][:top_k]
+    
+    results = []
+    for idx in top_indices:
+        listing_id = int(listing_ids[idx])
+        score = float(scores[idx])
+        listing = df[df['id'] == listing_id].iloc[0]
+        
+        results.append({
+            'listing_id': listing_id,
+            'score': round(score, 4),
+            'name': listing['name'],
+            'neighbourhood': listing['neighbourhood_cleansed'],
+            'url': listing['listing_url'],
+            'photo_url': f'{os.getenv("PHOTO_BASE_URL", "http://localhost:8000")}/photos/{city}/{listing_id}.jpg',
+        })
+    
+    return results
+
+
+# Pre-load Barcelona at startup so first request is fast
+_load_city_data('barcelona')
+print("Ready.")
+
+
+# === Allow running this file directly to test ===
+if __name__ == '__main__':
+    print("\n--- Test search ---")
+    test_image = Image.open('images/test.png')
+    results = search(test_image, city='barcelona')
+    for rank, r in enumerate(results, start=1):
+        print(f"{rank:2}. ({r['score']:.4f}) {r['name'][:50]:50}  {r['url']}")
