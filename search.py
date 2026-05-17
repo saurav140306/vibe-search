@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-from transformers import CLIPModel, CLIPProcessor
+from transformers import CLIPModel, CLIPImageProcessor
 from PIL import Image
 import torch.nn.functional as F
 
@@ -10,7 +10,7 @@ import torch.nn.functional as F
 print("Loading CLIP model...")
 _model_name = "openai/clip-vit-base-patch32"
 _model = CLIPModel.from_pretrained(_model_name)
-_processor = CLIPProcessor.from_pretrained(_model_name)
+_processor = CLIPImageProcessor.from_pretrained(_model_name)
 _model.eval()
 print("CLIP loaded.")
 
@@ -62,11 +62,9 @@ def search(image: Image.Image, city: str = 'barcelona', top_k: int = 10) -> list
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
-    # Direct CLIP encoding using transformers
+    # Direct CLIP encoding using transformers (image-only processor)
     with torch.no_grad():
-        # Process image and explicitly set tensor dtype
         inputs = _processor(images=image, return_tensors="pt")
-        # Convert pixel_values to float32 explicitly
         pixel_values = inputs['pixel_values'].to(torch.float32)
         query_embedding = _model.get_image_features(pixel_values=pixel_values)[0]
     
